@@ -30,7 +30,6 @@ class JsdCrossEntropy(nn.Module):
     """
     Jensen-Shannon Divergence + Cross-Entropy Loss.
     
-    Based on the AugMix paper: https://arxiv.org/abs/1912.02781.
     This loss splits the batch into several parts, computes cross-entropy on the clean part,
     and adds an averaged KL divergence term across splits.
     """
@@ -45,13 +44,22 @@ class JsdCrossEntropy(nn.Module):
 
     def forward(self, output, target):
         split_size = output.shape[0] // self.num_splits
-        assert split_size * self.num_splits == output.shape[0], "Batch size must be divisible by num_splits"
+        if split_size == 0:
+            # If the batch size is smaller than num_splits, fall back to basic cross-entropy
+            return self.cross_entropy_loss(output, target)
+        
+        # Adjust split size to ensure it fits within the batch size
+        if split_size * self.num_splits != output.shape[0]:
+            split_size = output.shape[0] // self.num_splits
+            split_size = max(1, split_size)  # Ensure split size is at least 1
+
         logits_split = torch.split(output, split_size)
 
-        # Compute cross-entropy loss on the clean (first) split.
+        # Compute cross-entropy loss on the clean (first) split
         loss = self.cross_entropy_loss(logits_split[0], target[:split_size])
         probs = [F.softmax(logits, dim=1) for logits in logits_split]
-        # Compute the mixture distribution (with clamping to avoid extreme KL divergence values)
+        
+        # Compute the mixture distribution and clamp values to avoid extreme KL divergence
         logp_mixture = torch.clamp(torch.stack(probs).mean(axis=0), 1e-7, 1).log()
         kl_losses = [F.kl_div(logp_mixture, p_split, reduction='batchmean') for p_split in probs]
         loss += self.alpha * sum(kl_losses) / len(kl_losses)

@@ -1,1 +1,70 @@
-*venv
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environment
+venv/
+env/
+.venv/
+env.bak/
+
+# Python cache files
+*.egg
+*.egg-info/
+dist/
+build/
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# PyTorch and PyTorch Lightning files
+lightning_logs/
+*.ckpt
+*.pth
+*.pt
+
+# Data and log files
+*.log
+*.csv
+*.dat
+*.pkl
+*.h5
+*.npy
+*.npz
+*.tensorboard
+
+# Configuration and environment files
+*.ini
+*.cfg
+*.env
+
+# MacOS system files
+.DS_Store
+Icon?
+Thumbs.db
+
+# IDE-specific files
+.vscode/
+.idea/
+*.sublime-workspace
+*.sublime-project
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+*.swo
+*.orig
+
+# Coverage and testing reports
+.coverage
+htmlcov/
+.tox/
+.nox/
+.pytest_cache/
+.cache/
+
+# Profiling data
+*.prof
+*.profraw
