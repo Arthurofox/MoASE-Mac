@@ -139,27 +139,3 @@ class SpatialDifferentiateDropout(nn.Module):
             f"scale_unmasked={self.scale_unmasked}"
         )
 
-if __name__ == "__main__":
-    # Quick test
-    x = torch.tensor([
-        [1.0, 4.0, 7.0, 10.0],
-        [18.0, 15.0, 12.0, 9.0]
-    ], requires_grad=True)  # shape (2, 4)
-
-    print("Original x:\n", x)
-
-    sdd = SpatialDifferentiateDropout(
-        q=0.5,
-        largest=True,
-        dim=1,
-        inplace=False,
-        scale_masked=0.1,      # small gradient for masked elements
-        scale_unmasked=1.0     # full gradient for unmasked
-    )
-    out = sdd(x)
-    print("Output after SDD (forward):\n", out)
-
-    # Dummy loss: sum of outputs
-    loss = out.sum()
-    loss.backward()
-    print("Grad of x after backward:\n", x.grad)

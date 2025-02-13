@@ -29,40 +29,33 @@ class LabelSmoothingCrossEntropy(nn.Module):
 class JsdCrossEntropy(nn.Module):
     """
     Jensen-Shannon Divergence + Cross-Entropy Loss.
-    
-    This loss splits the batch into several parts, computes cross-entropy on the clean part,
-    and adds an averaged KL divergence term across splits.
+    Handles incomplete splits by skipping the last one if it doesn't match the expected size.
     """
     def __init__(self, num_splits=3, alpha=12, smoothing=0.1):
         super(JsdCrossEntropy, self).__init__()
         self.num_splits = num_splits
         self.alpha = alpha
-        if smoothing is not None and smoothing > 0:
-            self.cross_entropy_loss = LabelSmoothingCrossEntropy(smoothing)
-        else:
-            self.cross_entropy_loss = nn.CrossEntropyLoss()
+        self.cross_entropy_loss = LabelSmoothingCrossEntropy(smoothing) if smoothing > 0 else nn.CrossEntropyLoss()
 
     def forward(self, output, target):
         split_size = output.shape[0] // self.num_splits
         if split_size == 0:
-            # If the batch size is smaller than num_splits, fall back to basic cross-entropy
             return self.cross_entropy_loss(output, target)
+
+        # Ensure we only use full splits
+        full_splits = output.shape[0] // split_size * split_size
+        logits_split = torch.split(output[:full_splits], split_size)
         
-        # Adjust split size to ensure it fits within the batch size
-        if split_size * self.num_splits != output.shape[0]:
-            split_size = output.shape[0] // self.num_splits
-            split_size = max(1, split_size)  # Ensure split size is at least 1
-
-        logits_split = torch.split(output, split_size)
-
         # Compute cross-entropy loss on the clean (first) split
         loss = self.cross_entropy_loss(logits_split[0], target[:split_size])
-        probs = [F.softmax(logits, dim=1) for logits in logits_split]
+
+        # Compute the KL divergence for the rest
+        probs = [F.softmax(logits, dim=1) for logits in logits_split if logits.shape[0] == split_size]
+        if len(probs) > 1:
+            logp_mixture = torch.clamp(torch.stack(probs).mean(dim=0), 1e-7, 1).log()
+            kl_losses = [F.kl_div(logp_mixture, p_split, reduction='batchmean') for p_split in probs]
+            loss += self.alpha * sum(kl_losses) / len(kl_losses)
         
-        # Compute the mixture distribution and clamp values to avoid extreme KL divergence
-        logp_mixture = torch.clamp(torch.stack(probs).mean(axis=0), 1e-7, 1).log()
-        kl_losses = [F.kl_div(logp_mixture, p_split, reduction='batchmean') for p_split in probs]
-        loss += self.alpha * sum(kl_losses) / len(kl_losses)
         return loss
 
 # -------------------------------
@@ -165,24 +158,3 @@ class CompositeLoss(nn.Module):
         
         return total_loss
 
-# -------------------------------
-# For Testing Purposes
-# -------------------------------
-if __name__ == "__main__":
-    # Dummy data for testing
-    batch_size, num_classes = 12, 10
-    student_outputs = torch.randn(batch_size, num_classes)
-    targets = torch.randint(0, num_classes, (batch_size,))
-    
-    # Simulate expert parameters (using two dummy tensors per expert)
-    student_expert_params = [torch.randn(5, 5), torch.randn(3, 3)]
-    teacher_expert_params = [p + 0.1 * torch.randn_like(p) for p in student_expert_params]
-    
-    # Optionally, simulate teacher outputs for consistency loss
-    teacher_outputs = torch.randn(batch_size, num_classes)
-    
-    # Create composite loss instance with JSD and a small consistency weight
-    comp_loss_fn = CompositeLoss(task_loss_type='jsd', num_splits=3, alpha=12, smoothing=0.1,
-                                   lambda_hp=0.1, lambda_cons=0.05)
-    loss_value = comp_loss_fn(student_outputs, targets, student_expert_params, teacher_expert_params, teacher_outputs)
-    print("Composite Loss:", loss_value.item())

@@ -44,30 +44,3 @@ class Router(nn.Module):
         routed_output = sum(outputs)
         return routed_output
 
-if __name__ == "__main__":
-    # --- Dummy Test ---
-    # For demonstration, we define two simple dummy experts.
-
-    class DummyExpert(nn.Module):
-        def __init__(self, out_dim):
-            super(DummyExpert, self).__init__()
-            self.fc = nn.Linear(10, out_dim)
-        def forward(self, x):
-            return self.fc(x)
-
-    # Create two dummy experts.
-    expert1 = DummyExpert(out_dim=20)
-    expert2 = DummyExpert(out_dim=20)
-    experts = nn.ModuleList([expert1, expert2])
-    router = Router(experts)
-
-    # Dummy input x of shape (B, 10)
-    x = torch.randn(4, 10)
-    # Dummy gate weights: shape (B, num_experts)
-    gate_weights = torch.tensor([[0.7, 0.3],
-                                 [0.5, 0.5],
-                                 [0.9, 0.1],
-                                 [0.2, 0.8]])
-    # Apply routing
-    output = router(x, gate_weights)
-    print("Routed output shape:", output.shape)

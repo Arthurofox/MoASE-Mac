@@ -94,24 +94,3 @@ class Backbone(nn.Module):
         optimizer.step()
         
         return loss.item()
-
-
-if __name__ == "__main__":
-    # Quick test of the backbone
-    model = Backbone(num_classes=10)
-    x = torch.randn(4, 3, 32, 32)
-
-    # In normal inference mode:
-    model.disable_adaptation()
-    logits, features = model(x)
-    print("Inference mode, logits shape:", logits.shape)
-    
-    # Enable adaptation mode and perform a test-time adaptation step.
-    model.enable_adaptation()
-    optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
-    loss_val = model.test_time_adaptation_step(x, nn.CrossEntropyLoss(), optimizer)
-    print("Test-time adaptation step loss:", loss_val)
-    
-    # Check outputs after adaptation
-    logits, features = model(x)
-    print("Adaptation mode, logits shape:", logits.shape)

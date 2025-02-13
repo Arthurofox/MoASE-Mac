@@ -56,20 +56,3 @@ class ExpertMLP(nn.Module):
         if x.dim() > 2:
             x = x.flatten(start_dim=1)
         return self.mlp_layers(x)
-
-
-if __name__ == "__main__":
-    # Test the experts with dummy data
-    
-    # For ExpertConv: simulate an image tensor (B, C, H, W)
-    conv_expert = ExpertConv(in_channels=3, out_channels=16, kernel_size=3)
-    dummy_image = torch.randn(2, 3, 32, 32)
-    conv_output = conv_expert(dummy_image)
-    print("ExpertConv output shape:", conv_output.shape)  # Expected: (2, 16, 32, 32)
-    
-    # For ExpertMLP: simulate flattened features
-    # Let's assume the feature dimension is 128, and we want to transform it to 64
-    mlp_expert = ExpertMLP(input_dim=128, hidden_dim=256, output_dim=64)
-    dummy_features = torch.randn(2, 128)
-    mlp_output = mlp_expert(dummy_features)
-    print("ExpertMLP output shape:", mlp_output.shape)  # Expected: (2, 64)

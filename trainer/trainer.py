@@ -94,23 +94,3 @@ class MoASETrainer(pl.LightningModule):
         y = torch.randint(0, self.config.num_classes, (200,))
         dataset = TensorDataset(x, y)
         return DataLoader(dataset, batch_size=self.config.batch_size)
-
-if __name__ == "__main__":
-    # For demonstration, create a dummy configuration.
-    class DummyConfig:
-        num_classes = 10
-        batch_size = 32
-        learning_rate = 1e-3
-        task_loss_type = 'jsd'   # Options: 'jsd', 'label_smoothing', or 'ce'
-        num_splits = 3
-        alpha = 12
-        smoothing = 0.1
-        lambda_hp = 0.1
-        lambda_cons = 0.05
-
-    config = DummyConfig()
-    model = MoASETrainer(config)
-    
-    # Create a PyTorch Lightning trainer and start training.
-    trainer = pl.Trainer(max_epochs=5, enable_progress_bar=20)
-    trainer.fit(model)
